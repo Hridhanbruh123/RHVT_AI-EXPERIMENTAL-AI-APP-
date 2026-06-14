@@ -1,0 +1,6 @@
+{
+  "name": "RHVT AI",
+  "description": "An advanced Gemini-powered chat assistant branded as RHVT AI, with multiple expert models and image generation features.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
