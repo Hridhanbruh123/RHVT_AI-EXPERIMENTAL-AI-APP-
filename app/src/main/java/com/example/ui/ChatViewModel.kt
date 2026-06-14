@@ -38,7 +38,7 @@ class ChatViewModel(
 ) : AndroidViewModel(application) {
 
     // USER PREFERENCES CONTROL (Survives app lifecycle gracefully via SharedPreferences)
-    private val prefs = getApplication<Application>().getSharedPreferences("nova_chat_prefs", android.content.Context.MODE_PRIVATE)
+    private val prefs = getApplication<Application>().getSharedPreferences("rhvt_chat_prefs", android.content.Context.MODE_PRIVATE)
 
     // Current active signed in user state
     private val _currentUser = MutableStateFlow<UserAccount?>(
@@ -177,6 +177,9 @@ class ChatViewModel(
     private val _seenOnboarding = MutableStateFlow(prefs.getBoolean("seen_onboarding", false))
     val seenOnboarding: StateFlow<Boolean> = _seenOnboarding.asStateFlow()
 
+    private val _isMemoryEnabled = MutableStateFlow(prefs.getBoolean("is_memory_enabled", true))
+    val isMemoryEnabled: StateFlow<Boolean> = _isMemoryEnabled.asStateFlow()
+
     // Active coroutine job to allow cleanly canceling generation mid-flight
     private var activeGenerationJob: kotlinx.coroutines.Job? = null
 
@@ -203,6 +206,33 @@ class ChatViewModel(
     fun setSeenOnboarding(seen: Boolean) {
         _seenOnboarding.value = seen
         prefs.edit().putBoolean("seen_onboarding", seen).apply()
+    }
+
+    fun setMemoryEnabled(enabled: Boolean) {
+        _isMemoryEnabled.value = enabled
+        prefs.edit().putBoolean("is_memory_enabled", enabled).apply()
+        if (!enabled) {
+            // Strip personalization when disabled
+            prefs.edit().remove("current_user_name").apply()
+            _currentUser.value?.let { user ->
+                if (user.provider != "Guest") {
+                    _currentUser.value = user.copy(displayName = "AI Explorer")
+                }
+            }
+        }
+    }
+
+    fun deleteMemory() {
+        _isMemoryEnabled.value = true
+        prefs.edit()
+            .putBoolean("is_memory_enabled", true)
+            .remove("current_user_name")
+            .apply()
+        _currentUser.value?.let { user ->
+            if (user.provider != "Guest") {
+                _currentUser.value = user.copy(displayName = "AI Explorer")
+            }
+        }
     }
 
     fun stopGenerating() {
@@ -285,7 +315,7 @@ class ChatViewModel(
 
     fun signInAsGuest() {
         val account = UserAccount(
-            email = "guest_explorer@novachat.ai",
+            email = "guest_explorer@rhvtai.com",
             displayName = "Guest Explorer",
             profilePicUrl = null,
             isEmailVerified = false,
@@ -325,7 +355,7 @@ class ChatViewModel(
     }
 
     fun setModel(modelName: String) {
-        val isGuest = currentUser.value?.provider == "Guest" || currentUser.value?.email == "guest_explorer@novachat.ai"
+        val isGuest = currentUser.value?.provider == "Guest" || currentUser.value?.email == "guest_explorer@rhvtai.com"
         if (isGuest && modelName == "gemini-1.5-pro") {
             // Block Ultra model for guests
             return
@@ -467,7 +497,7 @@ class ChatViewModel(
             _isTyping.value = false
             
             val user = _currentUser.value
-            if (user != null && user.provider != "Guest" && user.email != "guest_explorer@novachat.ai") {
+            if (user != null && user.provider != "Guest" && user.email != "guest_explorer@rhvtai.com") {
                 // Restore Plus for existing accounts as free bonus/saved purchase
                 selectPlan("Plus", "Monthly", "7732")
             } else {

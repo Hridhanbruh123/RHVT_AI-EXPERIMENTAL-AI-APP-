@@ -108,9 +108,24 @@ class ChatRepository(private val chatDao: ChatDao) {
 
         // 5. Send to Gemini
         return@withContext try {
-            val response = RetrofitClient.service.generateContent(model, apiKey, request)
-            val replyText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
-                ?: "I had trouble generating a reply. Please try again."
+            var responseText: String? = null
+            try {
+                val response = RetrofitClient.service.generateContent(model, apiKey, request)
+                responseText = response.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+            } catch (e: Exception) {
+                // If Ultra model fails (not gemini-3.5-flash), try falling back to Lite model automatically
+                if (model != "gemini-3.5-flash") {
+                    val fallbackResponse = RetrofitClient.service.generateContent("gemini-3.5-flash", apiKey, request)
+                    responseText = fallbackResponse.candidates?.firstOrNull()?.content?.parts?.firstOrNull()?.text
+                    if (responseText != null) {
+                        responseText = "$responseText\n\n*(Automatically fell back to RHVT Lite to preserve stability)*"
+                    }
+                } else {
+                    throw e
+                }
+            }
+
+            val replyText = responseText ?: "I had trouble generating a reply. Please try again."
 
             // 6. Save response into the database
             val botMessage = ChatMessage(

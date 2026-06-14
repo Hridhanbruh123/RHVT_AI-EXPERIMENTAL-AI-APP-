@@ -1455,6 +1455,7 @@ fun SettingsScreenLayout(
     val plan by viewModel.subscriptionPlan.collectAsStateWithLifecycle()
     val isCloudSyncing by viewModel.isCloudSyncing.collectAsStateWithLifecycle()
     val lastSyncedTime by viewModel.lastSyncedTime.collectAsStateWithLifecycle()
+    val isMemoryEnabled by viewModel.isMemoryEnabled.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
     Column(
@@ -1890,6 +1891,57 @@ fun SettingsScreenLayout(
                         checked = highContrast,
                         onCheckedChange = { viewModel.setHighContrast(it) }
                     )
+                }
+            }
+
+            // 4.5. MEMORY SYSTEM CONTROL (CLEAN PRODUCTION SPEC)
+            Text(text = "AI Personalization Memory", fontWeight = FontWeight.Bold, fontSize = getFontSize(14, fontSizeScale))
+            Card(
+                modifier = Modifier.fillMaxWidth().testTag("memory_settings_card"),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceColorAtElevation(1.dp))
+            ) {
+                Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "Personal Preference Memory",
+                                fontWeight = FontWeight.Bold,
+                                fontSize = getFontSize(13, fontSizeScale)
+                            )
+                            Text(
+                                text = "When ON, RHVT remembers user preferences, custom name, and interface settings. When OFF, stored preference memory is immediately cleared.",
+                                fontSize = getFontSize(10, fontSizeScale),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Switch(
+                            checked = isMemoryEnabled,
+                            onCheckedChange = { viewModel.setMemoryEnabled(it) },
+                            modifier = Modifier.testTag("memory_toggle_switch")
+                        )
+                    }
+                    
+                    Button(
+                        onClick = {
+                            viewModel.deleteMemory()
+                            Toast.makeText(context, "Preference memory erased!", Toast.LENGTH_SHORT).show()
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                            contentColor = MaterialTheme.colorScheme.error
+                        ),
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.fillMaxWidth().testTag("delete_memory_btn"),
+                        contentPadding = PaddingValues(vertical = 4.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Memory", modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Delete Memory Preferences", fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
             }
 
